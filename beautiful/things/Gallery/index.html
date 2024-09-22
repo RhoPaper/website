@@ -1,0 +1,1469 @@
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<script src="js/jquery.min.js"></script>
+
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>3D画廊</title>
+	<link rel="stylesheet" type="text/css" href="css/shuffling/normalize.css" />
+	<link rel="stylesheet" type="text/css" href="css/shuffling/default.css">
+	<link rel="stylesheet" type="text/css" href="css/shuffling/animate.min.css">
+	<link rel="stylesheet" type="text/css" href="css/shuffling/crosscover.min.css">
+	<style type="text/css">
+		html {
+
+			overflow: hidden;
+
+			-ms-touch-action: none;
+
+			-ms-content-zooming: none;
+
+		}
+
+		body {
+
+			position: absolute;
+
+			margin: 0px;
+
+			padding: 0px;
+
+			background: #E0E0E0;
+
+			width: 100%;
+
+			height: 100%;
+
+		}
+
+		.open_effect {
+			width: 60px;
+			height: 30px;
+			position: absolute;
+			right: 40px;
+			bottom: 100px;
+		}
+
+		.background_container {
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			background-image: url("full_screen_images/11.jpg");
+			background-position: center center;
+			background-repeat: no-repeat;
+			background-size: cover;
+			background-color: #000000;
+			opacity: 1;
+		}
+
+		.cherry_container {
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			background-image: url("full_screen_images/11.jpg");
+			background-position: center center;
+			background-repeat: no-repeat;
+			background-size: cover;
+			background-color: #000000;
+			opacity: 1;
+		}
+
+		#canvas {
+
+			position: absolute;
+
+			width: 100%;
+
+			height: 100%;
+
+			background: #E0E0E0;
+
+		}
+
+		#sbtn {
+			width: 30px;
+			height: 20px;
+			border: 2px solid #ccc;
+			position: fixed;
+			right: 60px;
+			bottom: 60px;
+		}
+
+		#sbtn:hover {
+			width: 25px;
+			height: 15px;
+			border: 2px solid #ccc;
+			position: fixed;
+			right: 60px;
+			bottom: 60px;
+		}
+
+		input[type='checkbox'].switch {
+			outline: none;
+			appearance: none;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			position: relative;
+			width: 40px;
+			height: 20px;
+			background: #ccc;
+			border-radius: 10px;
+			transition: border-color .3s, background-color .3s;
+		}
+
+		input[type='checkbox'].switch::after {
+			content: '';
+			display: inline-block;
+			width: 1rem;
+			height: 1rem;
+			border-radius: 50%;
+			background: #fff;
+			box-shadow: 0, 0, 2px, #999;
+			transition: .4s;
+			top: 2px;
+			position: absolute;
+			left: 2px;
+		}
+
+		input[type='checkbox'].switch:checked {
+			background: rgb(19, 206, 102);
+		}
+
+		/* 当input[type=checkbox]被选中时：伪元素显示下面样式 位置发生变化 */
+		input[type='checkbox'].switch:checked::after {
+			content: '';
+			position: absolute;
+			left: 55%;
+			top: 2px;
+		}
+	</style>
+
+	<script>
+		alert("操作说明：鼠标左键拖动画面转动视角，单击想前往的画架（不支持自由移动），在画架前再次单击画架全屏展示图片（视频）。全屏展示时，单击右下角透明小方块返回画廊，其上方按钮控制动态花瓣飘落开关。   |||    本页面较大，请耐心等待加载！如超过1分钟未能成功加载，请联系作者->QQ:2964774820 E-mail:rhopaper@rhopaper.xyz，万分感谢！")
+	</script>
+
+
+	<script type="text/javascript" src="js/ge1doot.js"></script>
+
+	<script type="text/javascript">
+
+
+		"use strict";
+
+
+		(function () {
+
+			/* ==== definitions ==== */
+
+			var diapo = [], layers = [], ctx, pointer, scr, camera, light, fps = 0, quality = [1, 2], imageData, num_of_images,
+				// ---- poly constructor ----
+
+				Poly = function (parent, face) {
+
+					this.parent = parent;
+
+					this.ctx = ctx;
+
+					this.color = face.fill || false;
+
+					this.points = [];
+
+					if (!face.img) {
+
+						// ---- create points ----
+
+						for (var i = 0; i < 4; i++) {
+
+							this.points[i] = new ge1doot.transform3D.Point(
+
+								parent.pc.x + (face.x[i] * parent.normalZ) + (face.z[i] * parent.normalX),
+
+								parent.pc.y + face.y[i],
+
+								parent.pc.z + (face.x[i] * parent.normalX) + (-face.z[i] * parent.normalZ)
+
+							);
+
+						}
+
+						this.points[3].next = false;
+
+					}
+
+				},
+
+				// ---- diapo constructor ----  将每一张图片都封装成一个对象
+
+				Diapo = function (path, img, structure) {
+
+					// ---- create image ----
+
+					this.img = new ge1doot.transform3D.Image(
+
+						this, path + img.img, 1, {
+
+						isLoaded: function (img) {
+
+							img.parent.isLoaded = true;
+
+							img.parent.loaded(img);
+
+						}
+
+					}
+
+					);
+					// alert(JSON.stringify(img))
+					this.visible = false;
+
+					this.normalX = img.nx;
+
+					this.normalZ = img.nz;
+
+					// ---- point center ----
+
+					this.pc = new ge1doot.transform3D.Point(img.x, img.y, img.z);
+
+					// ---- target positions ----
+
+					this.tx = img.x + (img.nx * Math.sqrt(camera.focalLength) * 20);
+
+					this.tz = img.z - (img.nz * Math.sqrt(camera.focalLength) * 20);
+
+					// ---- create polygons ----
+
+					this.poly = [];
+
+					for (var i = -1, p; p = structure[++i];) {
+
+						layers[i] = (p.img === true ? 1 : 2);
+
+						this.poly.push(
+
+							new Poly(this, p)
+
+						);
+
+					}
+
+				},
+
+				// ---- init section ----
+
+				init = function (json) {
+
+					// draw poly primitive
+
+					Poly.prototype.drawPoly = ge1doot.transform3D.drawPoly;
+
+					// ---- init screen ----
+
+					scr = new ge1doot.Screen({
+
+						container: "canvas"
+
+					});
+
+					ctx = scr.ctx;
+
+					scr.resize();
+
+					// ---- init pointer ----
+
+					pointer = new ge1doot.Pointer({
+
+						tap: function () {
+
+							if (camera.over) {  // 控制摄像头运动
+
+								if (camera.over === camera.target.elem) {
+
+									//alert(camera.target.z);
+									enter_fullScreen_or_video(imageData, camera.target.x, camera.target.z, num_of_images); // 再次点击时，调用该函数
+									// ---- return to the center ----
+									var cameraX_abs = Math.abs(camera.target.x); // 得到当前x的绝对值
+									var threshold = ((((num_of_images - 6) / 2) - 1) / 2) * 1000; // 获取阙值
+									if (cameraX_abs <= threshold) {
+
+										camera.target.x = camera.target.x;  // 再次点击时，垂直往后退
+										camera.target.z = 0;
+									} else {
+										if (camera.target.x < 0) {
+											camera.target.x = camera.target.x + 1000
+											camera.target.z = camera.target.z
+										} else {
+											camera.target.x = camera.target.x - 1000
+											camera.target.z = camera.target.z
+										}
+									}
+
+									camera.target.elem = false;
+
+								} else {
+
+									// ---- goto diapo ----
+
+									camera.target.elem = camera.over;
+
+									camera.target.x = camera.over.tx;
+
+									camera.target.z = camera.over.tz;
+
+									// ---- adapt tesselation level to distance ----  使镶嵌化水平适应距离
+
+									for (var i = 0, d; d = diapo[i++];) {
+
+										var dx = camera.target.x - d.pc.x;
+
+										var dz = camera.target.z - d.pc.z;
+
+										var dist = Math.sqrt(dx * dx + dz * dz);
+
+										var lev = (dist > 1500) ? quality[0] : quality[1];
+
+										d.img.setLevel(lev)
+
+									}
+
+								}
+
+							}
+
+						}
+
+					});
+
+					// ---- init camera ----
+
+					camera = new ge1doot.transform3D.Camera({
+
+						focalLength: Math.sqrt(scr.width) * 10,
+
+						easeTranslation: 0.025,
+
+						easeRotation: 0.06,
+
+						disableRz: true
+
+					}, {
+
+						move: function () {  // 摄像头运动函数
+
+							this.over = false;
+
+							// ---- rotation ----  摄像头可以3D旋转
+
+							if (pointer.isDraging) {
+
+								this.target.elem = false;
+
+								this.target.ry = -pointer.Xi * 0.01;
+
+								this.target.rx = (pointer.Y - scr.height * 0.5) / (scr.height * 0.5);
+
+							} else {
+
+								if (this.target.elem) {
+
+									this.target.ry = Math.atan2(
+
+										this.target.elem.pc.x - this.x,
+
+										this.target.elem.pc.z - this.z
+
+									);
+
+								}
+
+							}
+
+							this.target.rx *= 0.9;
+
+						}
+
+					});
+
+					camera.z = -10000;
+
+					camera.py = 0;
+
+					// ---- create images ----  创建图片对象
+
+					for (var i = 0, img; img = json.imgdata[i++];) {
+						num_of_images = i
+
+						diapo.push(
+
+							new Diapo(
+
+								json.options.imagesPath,
+
+								img,
+
+								json.structure
+
+							)
+
+						);
+
+					}
+
+					// ---- start engine ---- >>>
+
+					setInterval(function () {
+
+						quality = (fps > 50) ? [2, 3] : [1, 2];
+
+						fps = 0;
+
+					}, 1000);
+
+					run();
+
+				},
+
+				// ---- main loop ----
+
+				run = function () {
+
+					// ---- clear screen ----
+
+					ctx.clearRect(0, 0, scr.width, scr.height);
+
+					// ---- camera ----
+
+					camera.move();
+
+					// ---- draw layers ----  画层
+
+					for (var k = -1, l; l = layers[++k];) {
+
+						light = false;
+
+						for (var i = 0, d; d = diapo[i++];) {
+
+							(l === 1 && d.draw()) ||
+
+								(d.visible && d.poly[k].draw());
+
+						}
+
+					}
+
+					// ---- cursor ----
+
+					if (camera.over && !pointer.isDraging) {
+
+						scr.setCursor("pointer");  // 鼠标点中图片，游标为pointer
+
+					} else {
+
+						scr.setCursor("move");  // camera移动时，游标为move
+
+					}
+
+					// ---- loop ----
+
+					fps++;
+
+					requestAnimFrame(run);
+
+				};
+
+			/* ==== prototypes原型 ==== */
+
+			Poly.prototype.draw = function () {
+
+				// ---- color light ----
+
+				var c = this.color;
+
+				if (c.light || !light) {
+
+					var s = c.light ? this.parent.light : 1;
+
+					// ---- rgba color ----  控制墙是否透明
+
+					light = "rgba(" +
+
+						Math.round(c.r * s) + "," +
+
+						Math.round(c.g * s) + "," +
+
+						Math.round(c.b * s) + "," + (c.a || 1) + ")";
+
+					ctx.fillStyle = light;
+
+				}
+
+				// ---- paint poly ----
+
+				if (!c.light || this.parent.light < 1) {
+
+					// ---- projection ----
+
+					for (
+
+						var i = 0;
+
+						this.points[i++].projection();
+
+					);
+
+					this.drawPoly();
+
+					ctx.fill();
+
+				}
+
+			}
+
+			/* ==== image onload ==== */
+
+			Diapo.prototype.loaded = function (img) {
+
+				// ---- create points ---- 初始化时，各个图片的长宽
+
+				var d = [-1, 1, 1, -1, 1, 1, -1, -1];
+
+
+				// var w = img.texture.width  * 0.5;
+
+				// var h = img.texture.height * 0.5;
+				var w = 320 // 强制确定图片的大小
+				var h = 193
+
+				for (var i = 0; i < 4; i++) {
+
+					img.points[i] = new ge1doot.transform3D.Point(
+
+						this.pc.x + (w * this.normalZ * d[i]),
+
+						this.pc.y + (h * d[i + 4]),
+
+						this.pc.z + (w * this.normalX * d[i])
+
+					);
+
+				}
+
+			}
+
+			/* ==== images draw 在画板中画出图片==== */
+
+			Diapo.prototype.draw = function () {
+
+				// ---- visibility ----
+
+				this.pc.projection();
+
+				if (this.pc.Z > -(camera.focalLength >> 1) && this.img.transform3D(true)) {
+
+					// ---- light ----
+
+					this.light = 0.5 + Math.abs(this.normalZ * camera.cosY - this.normalX * camera.sinY) * 0.6;
+
+					// ---- draw image ----
+
+					this.visible = true;
+
+					this.img.draw();
+
+					// ---- test pointer inside ----
+
+					if (pointer.hasMoved || pointer.isDown) {
+
+						if (
+
+							this.img.isPointerInside(
+
+								pointer.X,
+
+								pointer.Y
+
+							)
+
+						) camera.over = this;
+
+					}
+
+				} else this.visible = false;
+
+				return true;
+
+			}
+
+			return {
+
+				// --- load data ----  监听事件，在页面加载时，开始执行load函数，载入数据(图片，墙壁，灯，阴影)
+				// 最先执行，在页面加载过程中
+				load: function (data) {
+					imageData = data.imgdata;
+					window.addEventListener('load', function () {
+
+						ge1doot.loadJS(
+
+							"js/imageTransform3D.js",
+
+							init, data
+
+						);
+
+					}, false);
+
+				}
+			}
+
+		})().load({
+
+			imgdata: [
+
+				// north 北墙
+				{ img: 'images/shuffling.jpg', x: -25000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/25.jpg', x: -24000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/98.jpg', x: -23000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/94.jpg', x: -22000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/90.jpg', x: -21000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/101.jpg', x: -20000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/81.jpg', x: -19000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/77.jpg', x: -18000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/73.jpg', x: -17000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/69.jpg', x: -16000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/65.jpg', x: -15000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/19.jpg', x: -14000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/58.jpg', x: -13000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/54.jpg', x: -12000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/47.jpg', x: -11000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/43.jpg', x: -10000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/39.jpg', x: -9000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/18.jpg', x: -8000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/15.jpg', x: -7000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/28.jpg', x: -6000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/17.jpg', x: -5000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/8.jpg', x: -4000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/5.jpg', x: -3000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/145.jpg', x: -2000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/3.jpg', x: -1000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/4.jpg', x: 0, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/11.jpg', x: 1000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/51.jpg', x: 2000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/9.jpg', x: 3000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/12.jpg', x: 4000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/22.jpg', x: 5000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/29.jpg', x: 6000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/33.jpg', x: 7000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/37.jpg', x: 8000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/40.jpg', x: 9000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/44.jpg', x: 10000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/48.jpg', x: 11000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/55.jpg', x: 12000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/59.jpg', x: 13000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/62.jpg', x: 14000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/66.jpg', x: 15000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/70.jpg', x: 16000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/74.jpg', x: 17000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/78.jpg', x: 18000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/26.jpg', x: 19000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/87.jpg', x: 20000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/91.jpg', x: 21000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/95.jpg', x: 22000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/99.jpg', x: 23000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/103.jpg', x: 24000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				{ img: 'images/shuffling.jpg', x: 25000, y: 0, z: 1500, nx: 0, nz: 1 },
+
+				// east 东墙
+				{ img: 'images/127.jpg', x: 25500, y: 0, z: 1000, nx: -1, nz: 0 },
+
+				{ img: 'images/50.jpg', x: 25500, y: 0, z: 0, nx: -1, nz: 0 },
+
+				{ img: 'images/85.jpg', x: 25500, y: 0, z: -1000, nx: -1, nz: 0 },
+
+
+				// south 南墙
+				{ img: 'images/shuffling.jpg', x: 25000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/104.jpg', x: 24000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/100.jpg', x: 23000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/96.jpg', x: 22000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/92.jpg', x: 21000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/88.jpg', x: 20000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/102.jpg', x: 19000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/79.jpg', x: 18000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/75.jpg', x: 17000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/71.jpg', x: 16000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/67.jpg', x: 15000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/63.jpg', x: 14000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/60.jpg', x: 13000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/56.jpg', x: 12000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/49.jpg', x: 11000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/45.jpg', x: 10000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/41.jpg', x: 9000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/38.jpg', x: 8000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/2.jpg', x: 7000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/30.jpg', x: 6000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/23.jpg', x: 5000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/14.jpg', x: 4000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/10.jpg', x: 3000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/6.jpg', x: 2000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/20.jpg', x: 1000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/21.jpg', x: 0, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/24.jpg', x: -1000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/7.jpg', x: -2000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/12.jpg', x: -3000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/16.jpg', x: -4000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/27.jpg', x: -5000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/31.jpg', x: -6000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/35.jpg', x: -7000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/13.jpg', x: -8000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/42.jpg', x: -9000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/46.jpg', x: -10000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/52.jpg', x: -11000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/57.jpg', x: -12000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/61.jpg', x: -13000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/64.jpg', x: -14000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/68.jpg', x: -15000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/72.jpg', x: -16000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/76.jpg', x: -17000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/80.jpg', x: -18000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/84.jpg', x: -19000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/89.jpg', x: -20000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/93.jpg', x: -21000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/303.jpg', x: -22000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/302.jpg', x: -23000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/301.jpg', x: -24000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				{ img: 'images/shuffling.jpg', x: -25000, y: 0, z: -1500, nx: 0, nz: -1 },
+
+				// west 西墙
+				{ img: 'images/83.jpg', x: -25500, y: 0, z: -1000, nx: 1, nz: 0 },
+
+				{ img: 'images/97.jpg', x: -25500, y: 0, z: 0, nx: 1, nz: 0 },
+
+				{ img: 'images/36.jpg', x: -25500, y: 0, z: 1000, nx: 1, nz: 0 }
+
+
+			],
+
+			structure: [
+
+				{
+
+					// wall  
+
+					fill: { r: 224, g: 224, b: 224, light: 1 },
+
+					x: [-1001, -490, -490, -1001],
+
+					z: [-500, -500, -500, -500],
+
+					y: [500, 500, -500, -500]  // 调整墙面的高
+
+				}, {
+
+					// wall
+
+					fill: { r: 224, g: 224, b: 224, light: 1 },
+
+					x: [-501, 2, 2, -500],
+
+					z: [-500, -500, -500, -500],
+
+					y: [500, 500, -500, -500]  // 调整墙面的高
+
+				}, {
+
+					// wall
+
+					fill: { r: 224, g: 224, b: 224, light: 1 },
+
+					x: [0, 502, 502, 0],
+
+					z: [-500, -500, -500, -500],
+
+					y: [500, 500, -500, -500]  // 调整墙面的高
+
+				}, {
+
+					// wall
+
+					fill: { r: 224, g: 224, b: 224, light: 1 },
+
+					x: [490, 1002, 1002, 490],
+
+					z: [-500, -500, -500, -500],
+
+					y: [500, 500, -500, -500]  // 调整墙面的高
+
+				}, {
+
+					// shadow
+
+					fill: { r: 0, g: 0, b: 0, a: 0.2 },
+
+					x: [-420, 420, 420, -420],
+
+					z: [-500, -500, -500, -500],
+
+					y: [150, 150, -320, -320]
+
+				}, {
+
+					// shadow
+
+					fill: { r: 0, g: 0, b: 0, a: 0.2 },
+
+					x: [-20, 20, 20, -20],
+
+					z: [-500, -500, -500, -500],
+
+					y: [250, 250, 150, 150]
+
+				}, {
+
+					// shadow
+
+					fill: { r: 0, g: 0, b: 0, a: 0.2 },
+
+					x: [-20, 20, 20, -20],
+
+					z: [-500, -500, -500, -500],
+
+					y: [-320, -320, -500, -500]
+
+				}, {
+
+					// shadow
+
+					fill: { r: 0, g: 0, b: 0, a: 0.2 },
+
+					x: [-20, 20, 10, -10],
+
+					z: [-500, -500, -100, -100],
+
+					y: [-500, -500, -500, -500]
+
+				}, {
+
+					// base
+
+					fill: { r: 128, g: 128, b: 128 },
+
+					x: [-50, 50, 50, -50],
+
+					z: [-150, -150, -50, -50],
+
+					y: [-500, -500, -500, -500]
+
+				}, {
+
+					// support
+
+					fill: { r: 128, g: 128, b: 128 },
+
+					x: [-10, 10, 10, -10],
+
+					z: [-100, -100, -100, -100],
+
+					y: [300, 300, -500, -500]
+
+				}, {
+
+					// frame
+
+					fill: { r: 128, g: 128, b: 128 },
+
+					x: [-320, -320, -320, -320],
+
+					z: [0, -20, -20, 0],
+
+					y: [-190, -190, 190, 190]
+
+				}, {
+
+					// frame
+
+					fill: { r: 128, g: 128, b: 128 },
+
+					x: [320, 320, 320, 320],
+
+					z: [0, -20, -20, 0],
+
+					y: [-190, -190, 190, 190]
+
+				},
+
+				{ img: true },
+
+				{
+
+					// ceilingLight
+
+					fill: { r: 255, g: 128, b: 0 },
+
+					x: [-50, 50, 50, -50],
+
+					z: [450, 450, 550, 550],
+
+					y: [500, 500, 500, 500]
+
+				}, {
+
+					// groundLight
+
+					fill: { r: 255, g: 128, b: 0 },
+
+					x: [-50, 50, 50, -50],
+
+					z: [450, 450, 550, 550],
+
+					y: [-500, -500, -500, -500]
+
+				}
+
+			],
+
+			options: {
+
+				imagesPath: ""
+
+			}
+
+		});
+		function enter_fullScreen_or_video(imageData, cameraX, cameraZ, num_of_images) {
+			imageData = JSON.stringify(imageData);
+			//alert(imageData);
+			console.log(imageData);
+
+			var cameraX_abs = Math.abs(cameraX); // 获取绝对值
+			var threshold = ((((num_of_images - 6) / 2) - 1) / 2) * 1000;  // 获取阙值，判断点击的是南北墙还是东西墙
+
+			if (cameraX_abs <= threshold) {
+				if (cameraZ < 0)
+					cameraZ = -1500
+				else
+					cameraZ = 1500
+			} else {
+				if (cameraX < 0)
+					cameraX = -(threshold + 500);
+				else
+					cameraX = threshold + 500;
+			}
+
+			var imgname = ""; //存储图片
+
+			var d1 = JSON.parse(imageData);//转换成数组
+
+			d1.forEach(function (t) {
+
+				console.log(t.x + ":" + cameraX + "     " + t.z + ":" + cameraZ);
+
+				if (t.x == cameraX && t.z == cameraZ) {
+
+					imgname = t.img.replace(/images\/|.jpg/g, "");
+
+					console.log(imgname + "查找到：" + t.img);
+
+				}
+				//console.log(t);
+			})
+
+			var data = "";
+			var checkbox_state;
+			//alert(imgname)
+			if (imgname == "shuffling") {
+				document.getElementById("shuffle").style.display = "block";
+			} else {
+				var video_or_full_pic = imgname;
+				if (video_or_full_pic < 300) {  // 图片名小于300的，进入带落樱的全屏模式，否则进入视频模式
+					//data= "<img src='full_screen_images/" + imgname +".jpg' style='width:100%; height:auto;' />";
+
+					// 开关显示
+					document.getElementById("control_effect").style.display = "block";
+					checkbox_state = $("#checkbox_id").is(":checked");
+					if (checkbox_state == false) {
+						// 落樱效果
+						$("#jsi-cherry-container").css("background-image", "url(full_screen_images/" + imgname + ".jpg)");
+						var cherry_block1 = document.getElementById('jsi-cherry-container');
+						cherry_block1.style.display = "block";
+					} else {
+						// 无落樱效果
+						$("#background-container").css("background-image", "url(full_screen_images/" + imgname + ".jpg)");
+						document.getElementById("background-container").style.display = "block";
+					}
+
+				} else {
+					data = "<video loop='loop' autoplay='autoplay' width='100%'>" +
+						"<source src='https://s3.tebi.io/paperpan/" + imgname + ".webm' type='video/webm'/>" +
+						"</video>";
+					document.getElementById('cover').innerHTML = data;
+				}
+			}
+
+			var control_none1 = document.getElementById('control');
+			control_none1.style.display = "none";
+
+			document.getElementById("checkbox_id").onclick = () => {
+				checkbox_state = $("#checkbox_id").is(":checked");
+				if (checkbox_state == false) {
+					// 落樱效果
+					$("#jsi-cherry-container").css("background-image", "url(full_screen_images/" + imgname + ".jpg)");
+					var cherry_block1 = document.getElementById('jsi-cherry-container');
+					cherry_block1.style.display = "block";
+					document.getElementById("background-container").style.display = "none";
+				} else {
+					// 无落樱效果
+					var cherry_none1 = document.getElementById('jsi-cherry-container');
+					cherry_none1.style.display = "none";
+					$("#background-container").css("background-image", "url(full_screen_images/" + imgname + ".jpg)");
+					document.getElementById("background-container").style.display = "block";
+				}
+			}
+
+			document.getElementById("sbtn").onclick = () => {
+				var control_block1 = document.getElementById('control');
+				control_block1.style.display = "block";
+				if (imgname == "shuffling") {
+					document.getElementById("shuffle").style.display = "none";
+				} else {
+					if (imgname < 300) {
+						var cherry_none1 = document.getElementById('jsi-cherry-container');
+						cherry_none1.style.display = "none";
+						document.getElementById("control_effect").style.display = "none";
+						document.getElementById("background-container").style.display = "none";
+					} else {
+						document.getElementById('cover').innerHTML = "";
+					}
+
+				}
+
+			}
+		}
+	</script>
+
+</head>
+
+<body>
+	<!-- 装视频的div -->
+	<div id="cover"></div>
+
+	<!-- 装落樱以及背景的div -->
+	<div id="jsi-cherry-container" class="cherry_container" style="display: none;"></div>
+	<!-- 无落樱单背景的div -->
+	<div id="background-container" class="background_container" style="display: none;"></div>
+
+	<!-- 轮播div -->
+	<div id="shuffle" class="crosscover" style="display:none">
+		<!-- <ul class="crosscover-list">
+					<li><img src="./full_screen_images/83.jpg" style="width:100%; height:auto;" alt="image01"></li>
+					<li><img src="./full_screen_images/8.jpg" style="width:100%; height:auto;" alt="image02"></li>
+					<li><img src="./full_screen_images/9.jpg" style="width:100%; height:auto;" alt="image03"></li>
+					<li><img src="./full_screen_images/11.jpg" style="width:100%; height:auto;" alt="image04"></li>
+					<li><img src="./full_screen_images/15.jpg" style="width:100%; height:auto;" alt="image05"></li>
+					<li><img src="./full_screen_images/19.jpg" style="width:100%; height:auto;" alt="image06"></li>
+					<li><img src="./full_screen_images/24.jpg" style="width:100%; height:auto;" alt="image07"></li>
+					<li><img src="./full_screen_images/69.jpg" style="width:100%; height:auto;" alt="image08"></li>
+					<li><img src="./full_screen_images/80.jpg" style="width:100%; height:auto;" alt="image09"></li>
+					<li><img src="./full_screen_images/89.jpg" style="width:100%; height:auto;" alt="image10"></li>
+					<li><img src="./full_screen_images/97.jpg" style="width:100%; height:auto;" alt="image11"></li>
+					<li><img src="./full_screen_images/3.jpg" style="width:100%; height:auto;" alt="image12"></li>
+					<li><img src="./full_screen_images/16.jpg" style="width:100%; height:auto;" alt="image13"></li>
+					<li><img src="./full_screen_images/18.jpg" style="width:100%; height:auto;" alt="image14"></li>
+					<li><img src="./full_screen_images/21.jpg" style="width:100%; height:auto;" alt="image15"></li>
+					<li><img src="./full_screen_images/23.jpg" style="width:100%; height:auto;" alt="image16"></li>
+					<li><img src="./full_screen_images/25.jpg" style="width:100%; height:auto;" alt="image17"></li>
+					<li><img src="./full_screen_images/26.jpg" style="width:100%; height:auto;" alt="image18"></li>
+					<li><img src="./full_screen_images/28.jpg" style="width:100%; height:auto;" alt="image19"></li>
+					<li><img src="./full_screen_images/31.jpg" style="width:100%; height:auto;" alt="image20"></li>
+					<li><img src="./full_screen_images/35.jpg" style="width:100%; height:auto;" alt="image21"></li>
+					<li><img src="./full_screen_images/37.jpg" style="width:100%; height:auto;" alt="image22"></li>
+				</ul> -->
+	</div>
+
+	<!-- 3D空间div -->
+	<div id="control">
+		<canvas id="canvas">你的浏览器不支持HTML5画布技术，请使用谷歌浏览器。</canvas>
+	</div>
+
+	<!-- 樱花特效开关 -->
+	<div id="control_effect" class="open_effect" style="display:none;">
+		<div id="control_button">
+			<input id="checkbox_id" type="checkbox" class="switch" onchange="on_off_cherry()">
+		</div>
+	</div>
+	<!-- 右下角按钮 -->
+	<div id="sbtn"></div>
+
+	<script>
+		$("#control_button").hide();
+		$("#control_effect").hover(function () {
+			$("#control_button").show();
+		}, function () {
+			$("#control_button").hide();
+
+		})
+	</script>
+
+	<!-- 随机轮播 -->
+	<script>
+
+		var image_shuffle = [];
+		function randomNum() { //生成随机数 1 - 105
+			var num = parseInt(Math.ceil(Math.random() * 154));
+			num = num + 1;
+			if (image_shuffle.indexOf(num) == -1) {//去重
+				image_shuffle.push(num);
+			}
+			if (image_shuffle.length < 22) { //生成22位随机数，这里可以配置生成几位
+				randomNum();
+			}
+		}
+		randomNum();
+		var data = "<ul class='crosscover-list'>";
+		for (i = 0; i < image_shuffle.length; i++) {
+			data = data + "<li><img src='./full_screen_images/" + image_shuffle[i] + ".jpg' style='width:100%; height:auto;' alt='image" + i + "'></li>";
+		}
+		data = data + "</ul>"
+		document.getElementById('shuffle').innerHTML = data;
+	</script>
+
+	<!-- 轮播的效果插件 Effect plug-in for carousel effect -->
+	<script src="js/jquery-2.1.1.min.js"></script>
+	<script src="js/crosscover.min.js"></script>
+	<script type="text/javascript">
+		$(".crosscover").crosscover({
+			animateInClass: 'bounce',
+			animateOutClass: 'flash',
+			interval: 1000 * 60 * 10,  // 1000ms * 60 * 10，十分钟自动切换
+			startIndex: 0,
+			autoPlay: true,
+			controller: true,
+			controllerClass: 'crosscover-controller',
+			prevClass: 'crosscover-prev',
+			nextClass: 'crosscover-next',
+			playerClass: 'crosscover-player',
+			playerActiveClass: 'is-playing',
+			playerInnerHtml: '<span class="crosscover-icon-player"></span>',
+			prevInnerHtml: '<span class="crosscover-icon-prev"></span>',
+			nextInnerHtml: '<span class="crosscover-icon-next"></span>'
+		});
+	</script>
+
+	<script>
+		document.getElementById("sbtn").onclick = () => {
+			document.getElementById("shuffle").style.display = "none";
+		}
+	</script>
+
+	<!-- 落樱效果的js -->
+	<script>
+		var RENDERER = {
+			INIT_CHERRY_BLOSSOM_COUNT: 1,
+			MAX_ADDING_INTERVAL: 400,
+
+			init: function () {
+				this.setParameters();
+				this.reconstructMethods();
+				this.createCherries();
+				this.render();
+			},
+			setParameters: function () {
+				this.$container = $('#jsi-cherry-container');
+				this.width = this.$container.width();
+				this.height = this.$container.height();
+				this.context = $('<canvas />').attr({ width: this.width, height: this.height }).appendTo(this.$container).get(0).getContext('2d');
+				this.cherries = [];
+				this.maxAddingInterval = Math.round(this.MAX_ADDING_INTERVAL * 1000 / this.width);
+				this.addingInterval = this.maxAddingInterval;
+			},
+			reconstructMethods: function () {
+				this.render = this.render.bind(this);
+			},
+			createCherries: function () {
+				for (var i = 0, length = Math.round(this.INIT_CHERRY_BLOSSOM_COUNT * this.width / 1000); i < length; i++) {
+					this.cherries.push(new CHERRY_BLOSSOM(this, true));
+				}
+			},
+			render: function () {
+				requestAnimationFrame(this.render);
+				this.context.clearRect(0, 0, this.width, this.height);
+
+				this.cherries.sort(function (cherry1, cherry2) {
+					return cherry1.z - cherry2.z;
+				});
+				for (var i = this.cherries.length - 1; i >= 0; i--) {
+					if (!this.cherries[i].render(this.context)) {
+						this.cherries.splice(i, 1);
+					}
+				}
+				if (--this.addingInterval == 0) {
+					this.addingInterval = this.maxAddingInterval;
+					this.cherries.push(new CHERRY_BLOSSOM(this, false));
+				}
+			}
+		};
+		var CHERRY_BLOSSOM = function (renderer, isRandom) {
+			this.renderer = renderer;
+			this.init(isRandom);
+		};
+		CHERRY_BLOSSOM.prototype = {
+			FOCUS_POSITION: 300,
+			FAR_LIMIT: 600,
+			MAX_RIPPLE_COUNT: 100,
+			RIPPLE_RADIUS: 100,
+			SURFACE_RATE: 0.5,
+			SINK_OFFSET: 20,
+
+			init: function (isRandom) {
+				this.x = this.getRandomValue(-this.renderer.width, this.renderer.width);
+				this.y = isRandom ? this.getRandomValue(0, this.renderer.height) : this.renderer.height * 1.5;
+				this.z = this.getRandomValue(0, this.FAR_LIMIT);
+				this.vx = this.getRandomValue(-2, 2);
+				this.vy = -2;
+				this.theta = this.getRandomValue(0, Math.PI * 2);
+				this.phi = this.getRandomValue(0, Math.PI * 2);
+				this.psi = 0;
+				this.dpsi = this.getRandomValue(Math.PI / 600, Math.PI / 300);
+				this.opacity = 0;
+				this.endTheta = false;
+				this.endPhi = false;
+				this.rippleCount = 0;
+
+				var axis = this.getAxis(),
+					theta = this.theta + Math.ceil(-(this.y + this.renderer.height * this.SURFACE_RATE) / this.vy) * Math.PI / 500;
+				theta %= Math.PI * 2;
+
+				this.offsetY = 40 * ((theta <= Math.PI / 2 || theta >= Math.PI * 3 / 2) ? -1 : 1);
+				this.thresholdY = this.renderer.height / 2 + this.renderer.height * this.SURFACE_RATE * axis.rate;
+				this.entityColor = this.renderer.context.createRadialGradient(0, 40, 0, 0, 40, 80);
+				this.entityColor.addColorStop(0, 'hsl(330, 70%, ' + 50 * (0.3 + axis.rate) + '%)');
+				this.entityColor.addColorStop(0.05, 'hsl(330, 40%,' + 55 * (0.3 + axis.rate) + '%)');
+				this.entityColor.addColorStop(1, 'hsl(330, 20%, ' + 70 * (0.3 + axis.rate) + '%)');
+				this.shadowColor = this.renderer.context.createRadialGradient(0, 40, 0, 0, 40, 80);
+				this.shadowColor.addColorStop(0, 'hsl(330, 40%, ' + 30 * (0.3 + axis.rate) + '%)');
+				this.shadowColor.addColorStop(0.05, 'hsl(330, 40%,' + 30 * (0.3 + axis.rate) + '%)');
+				this.shadowColor.addColorStop(1, 'hsl(330, 20%, ' + 40 * (0.3 + axis.rate) + '%)');
+			},
+			getRandomValue: function (min, max) {
+				return min + (max - min) * Math.random();
+			},
+			getAxis: function () {
+				var rate = this.FOCUS_POSITION / (this.z + this.FOCUS_POSITION),
+					x = this.renderer.width / 2 + this.x * rate,
+					y = this.renderer.height / 2 - this.y * rate;
+				return { rate: rate, x: x, y: y };
+			},
+			renderCherry: function (context, axis) {
+				context.beginPath();
+				context.moveTo(0, 40);
+				context.bezierCurveTo(-60, 20, -10, -60, 0, -20);
+				context.bezierCurveTo(10, -60, 60, 20, 0, 40);
+				context.fill();
+
+				for (var i = -4; i < 4; i++) {
+					context.beginPath();
+					context.moveTo(0, 40);
+					context.quadraticCurveTo(i * 12, 10, i * 4, -24 + Math.abs(i) * 2);
+					context.stroke();
+				}
+			},
+			render: function (context) {
+				var axis = this.getAxis();
+
+				if (axis.y == this.thresholdY && this.rippleCount < this.MAX_RIPPLE_COUNT) {
+					context.save();
+					context.lineWidth = 2;
+					context.strokeStyle = 'hsla(0, 0%, 100%, ' + (this.MAX_RIPPLE_COUNT - this.rippleCount) / this.MAX_RIPPLE_COUNT + ')';
+					context.translate(axis.x + this.offsetY * axis.rate * (this.theta <= Math.PI ? -1 : 1), axis.y);
+					context.scale(1, 0.3);
+					context.beginPath();
+					context.arc(0, 0, this.rippleCount / this.MAX_RIPPLE_COUNT * this.RIPPLE_RADIUS * axis.rate, 0, Math.PI * 2, false);
+					context.stroke();
+					context.restore();
+					this.rippleCount++;
+				}
+				if (axis.y < this.thresholdY || (!this.endTheta || !this.endPhi)) {
+					if (this.y <= 0) {
+						this.opacity = Math.min(this.opacity + 0.01, 1);
+					}
+					context.save();
+					context.globalAlpha = this.opacity;
+					context.fillStyle = this.shadowColor;
+					context.strokeStyle = 'hsl(330, 30%,' + 40 * (0.3 + axis.rate) + '%)';
+					context.translate(axis.x, Math.max(axis.y, this.thresholdY + this.thresholdY - axis.y));
+					context.rotate(Math.PI - this.theta);
+					context.scale(axis.rate * -Math.sin(this.phi), axis.rate);
+					context.translate(0, this.offsetY);
+					this.renderCherry(context, axis);
+					context.restore();
+				}
+				context.save();
+				context.fillStyle = this.entityColor;
+				context.strokeStyle = 'hsl(330, 40%,' + 70 * (0.3 + axis.rate) + '%)';
+				context.translate(axis.x, axis.y + Math.abs(this.SINK_OFFSET * Math.sin(this.psi) * axis.rate));
+				context.rotate(this.theta);
+				context.scale(axis.rate * Math.sin(this.phi), axis.rate);
+				context.translate(0, this.offsetY);
+				this.renderCherry(context, axis);
+				context.restore();
+
+				if (this.y <= -this.renderer.height / 4) {
+					if (!this.endTheta) {
+						for (var theta = Math.PI / 2, end = Math.PI * 3 / 2; theta <= end; theta += Math.PI) {
+							if (this.theta < theta && this.theta + Math.PI / 200 > theta) {
+								this.theta = theta;
+								this.endTheta = true;
+								break;
+							}
+						}
+					}
+					if (!this.endPhi) {
+						for (var phi = Math.PI / 8, end = Math.PI * 7 / 8; phi <= end; phi += Math.PI * 3 / 4) {
+							if (this.phi < phi && this.phi + Math.PI / 200 > phi) {
+								this.phi = Math.PI / 8;
+								this.endPhi = true;
+								break;
+							}
+						}
+					}
+				}
+				if (!this.endTheta) {
+					if (axis.y == this.thresholdY) {
+						this.theta += Math.PI / 200 * ((this.theta < Math.PI / 2 || (this.theta >= Math.PI && this.theta < Math.PI * 3 / 2)) ? 1 : -1);
+					} else {
+						this.theta += Math.PI / 500;
+					}
+					this.theta %= Math.PI * 2;
+				}
+				if (this.endPhi) {
+					if (this.rippleCount == this.MAX_RIPPLE_COUNT) {
+						this.psi += this.dpsi;
+						this.psi %= Math.PI * 2;
+					}
+				} else {
+					this.phi += Math.PI / ((axis.y == this.thresholdY) ? 200 : 500);
+					this.phi %= Math.PI;
+				}
+				if (this.y <= -this.renderer.height * this.SURFACE_RATE) {
+					this.x += 2;
+					this.y = -this.renderer.height * this.SURFACE_RATE;
+				} else {
+					this.x += this.vx;
+					this.y += this.vy;
+				}
+				return this.z > -this.FOCUS_POSITION && this.z < this.FAR_LIMIT && this.x < this.renderer.width * 1.5;
+			}
+		};
+		$(function () {
+			RENDERER.init();
+		});
+
+	</script>
+</body>
+
+</html>
