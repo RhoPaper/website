@@ -12,5 +12,5 @@ The only developer of this small website is RhoPaper, a poor student party. The 
  
 The mini-site is still being continuously updated~~ (low EQ: half-finished product 😅)~~... Please stay tuned~
  
->Finally, I humbly beg for a Star✨😭... The author, of course, knows that this ordinary and even extremely simple little platform cannot compare to the works of the experts on Github. But considering how pitiful->![Github stars](https://img.shields.io/github/stars/DWCTOD/interview.svg)
+>Finally, I humbly beg for a Star✨😭... The author, of course, knows that this ordinary and even extremely simple little platform cannot compare to the works of the experts on Github. But considering how pitiful->![Github stars](https://img.shields.io/github/stars/RhoPaper/website.svg)
  and hardworking I am, could you please spare a free Star😫? Please! 😘😘
