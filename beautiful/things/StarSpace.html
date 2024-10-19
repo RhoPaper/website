@@ -12,6 +12,19 @@
             margin: 0;
         }
     </style>
+    <script>
+        // 当页面加载完毕时，弹出窗口
+        window.onload = function () {
+            var confirmRedirect = confirm("本页面已年久失修，欢迎前往我的新站点参观！（单击“确认”前往新站点，“取消”留在当前页面）");
+            if (confirmRedirect) {
+                // 用户点击确认，重定向到百度
+                window.location.href = "https://rhopaper.top/";
+            } else {
+                // 用户点击取消，留在当前页面
+                alert("您留在了当前页面！");
+            }
+        };
+    </script>
 </head>
 
 <body>
