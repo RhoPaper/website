@@ -147,9 +147,18 @@
 	</style>
 
 	<script>
-		alert("操作说明：鼠标左键拖动画面转动视角，单击想前往的画架（不支持自由移动），在画架前再次单击画架全屏展示图片（视频）。全屏展示时，单击右下角透明小方块返回画廊，其上方按钮控制动态花瓣飘落开关。   |||    本页面较大，请耐心等待加载！如超过1分钟未能成功加载，请联系作者->QQ:2964774820 E-mail:rhopaper@rhopaper.xyz，万分感谢！")
+		// 当页面加载完毕时，弹出窗口
+		window.onload = function () {
+			var confirmRedirect = confirm("本页面已年久失修，欢迎前往我的新站点参观！（单击“确认”前往新站点，“取消”留在当前页面）");
+			if (confirmRedirect) {
+				// 用户点击确认，重定向到百度
+				window.location.href = "https://rhopaper.top/";
+			} else {
+				// 用户点击取消，留在当前页面
+				alert("您留在了当前页面！操作说明：鼠标左键拖动画面转动视角，单击想前往的画架（不支持自由移动），在画架前再次单击画架全屏展示图片（视频）。全屏展示时，单击右下角透明小方块返回画廊，其上方按钮控制动态花瓣飘落开关。   |||    本页面较大，请耐心等待加载！如超过1分钟未能成功加载，请联系作者->QQ:2964774820 E-mail:rhopaper@rhopaper.top，万分感谢！");
+			}
+		};
 	</script>
-
 
 	<script type="text/javascript" src="js/ge1doot.js"></script>
 
